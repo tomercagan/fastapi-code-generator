@@ -24,6 +24,24 @@ MODEL_PATH: pathlib.Path = pathlib.Path("models.py")
 
 RE_APPLICATION_JSON_PATTERN: Pattern[str] = re.compile(r'^application/.*json$')
 
+RE_FILE_REF: Pattern[str] = re.compile(r"^.*\.ya?ml#")
+
+
+class LocalRefFileMissingError(FileNotFoundError):
+    """Raised when a local reference file is missing
+    This exception is used to give more information that a file referenced locally is missing
+    """
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __repr__(self):
+        return f"LocalRefFileMissingError({self.filename})"
+
+    def __str__(self):
+        return f"A local file '{self.filename}' used in a reference was not found. Make sure the file exists in a " \
+                "path relative to the directory from which you executed the command."
+
+
 
 def get_ref_body(
     ref: str, openapi_model_parser: OpenAPIModelParser, components: Dict[str, Any]
@@ -37,6 +55,15 @@ def get_ref_body(
             return get_model_by_path(ref_body, path.split('/'))
         else:
             return openapi_model_parser._get_ref_body(ref)
+    elif RE_FILE_REF.match(ref):
+        # get ref body from local file
+        filename, path = ref.rsplit('#/', 1)
+        try:
+            ref_body = openapi_model_parser._get_ref_body(filename)
+            return get_model_by_path(ref_body, path.split('/'))
+        except FileNotFoundError as e:
+            raise LocalRefFileMissingError(filename) from e
+
     raise NotImplementedError(f'ref={ref} is not supported')
 
 
