@@ -206,12 +206,6 @@ paths:
     parameters:
       - $ref: 'pets.yaml#/components/parameters/MyParam'
 components:
-  parameters:
-    MyParam:
-      name: foo
-      in: query
-      schema:
-        type: string
   responses:
     OK:
       description: OK
